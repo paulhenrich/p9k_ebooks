@@ -73,6 +73,9 @@
 (defn tweet-text [tweet-row]
   (nth tweet-row 5))
 
+(defn kill-multiple-spaces [text]
+  (clojure.string/replace text #"\s{2,}" " "))
+
 (defn redact-mentions [text]
   (clojure.string/replace text #"@\S*" ""))
 
@@ -84,7 +87,9 @@
    (filter not-retweet? tweets)
    (map tweet-text)
    (map redact-mentions)
-   (map redact-links)))
+   (map redact-links)
+   (map kill-multiple-spaces)
+   ))
 
 
 (def branching-prefixes
