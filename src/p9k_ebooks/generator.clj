@@ -3,6 +3,11 @@
             [clojure.java.io :as io]
             [clojure-csv.core :as csv]))
 
+;; TODO:
+;;  * changing bi-gram to tri-gram should be a one line change
+;;  * organize file
+;;  * maybe replace # with ♯ so as not to polute search
+;;  * kill words like "kill"
 
 (defn word-transitions [sample]
   "Transform text into trigrams"
@@ -93,13 +98,12 @@
 
 (defn gen-random []
   "Generate a random phrase that looks like @p9k coulda twote it"
-  (let [prefix "I"
+  (let [prefix (-> branching-prefixes rand-nth)
         phrase (finalize-phrase (generate-text prefix (vector->word-chain original-tweets-corpus)))]
     (if (valid? phrase)
       phrase
       (recur))
       ))
-(gen-random)
 
 ;; frequency counting of source texts
 (defn freq-words [stop-words-count]
@@ -114,4 +118,4 @@
          (drop stop-words-count)
          println)))
 
-;; (dotimes [_ 500] (println (gen-random)))
+(gen-random)
