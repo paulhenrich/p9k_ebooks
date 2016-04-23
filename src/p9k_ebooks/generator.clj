@@ -4,22 +4,29 @@
             [clojure-csv.core :as csv]))
 
 ;; TODO:
-;;  * changing bi-gram to tri-gram should be a one line change
 ;;  * organize file
 ;;  * maybe replace # with ♯ so as not to polute search
 ;;  * kill words like "kill"
 
+
+(def ngram-size 2)
+
 (defn word-transitions [sample]
   "Transform text into trigrams"
   (let [words (clojure.string/split sample #"[\s|\n]")]
-    (partition-all 2 1 words)))
+    (partition-all (inc ngram-size) 1 words)))
 
 (defn word-chain [partitions]
-  (reduce (fn [r t] (merge-with clojure.set/union r
-                                 (let [[a b] t]
-                                   {[a] (if b #{b} #{})})))
-           {}
-           partitions))
+  (reduce (fn [r t]
+            (merge-with clojure.set/union r
+                        (if (= (inc ngram-size) (count t))
+                          ;; we have a suffix
+                          {(vec (take ngram-size t)) #{(last t)}}
+                          ;; we have no suffix
+                          {(vec (take ngram-size t)) #{}}
+                          )))
+          {}
+          partitions))
 
 (defn vector->word-chain [text-vector]
   (->> text-vector
@@ -31,7 +38,7 @@
 
 (defn walk-chain [chain result]
   "Build a chain until the text version would hit 140 characters"
-  (let [prefix (take-last 1 result)
+  (let [prefix (take-last ngram-size result)
         suffixes (get chain prefix)]
     (if (empty? suffixes)
       result
