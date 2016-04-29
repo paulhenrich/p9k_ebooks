@@ -9,7 +9,7 @@
 ;;  * kill words like "kill"
 
 
-(def ngram-size 2)
+(def ngram-size 1)
 
 (defn word-transitions [sample]
   "Transform text into trigrams"
@@ -33,8 +33,8 @@
       (mapcat word-transitions)
       word-chain))
 
-(defn chain->text [[initial & remaining]]
-  (apply str (clojure.string/capitalize initial) " " (interpose " " remaining)))
+(defn chain->text [chain]
+  (clojure.string/join " " chain))
 
 (defn walk-chain [chain result]
   "Build a chain until the text version would hit 140 characters"
@@ -76,6 +76,9 @@
 (defn kill-multiple-spaces [text]
   (clojure.string/replace text #"\s{2,}" " "))
 
+(defn fix-ampersands [text]
+  (clojure.string/replace text #"&amp;" "&"))
+
 (defn redact-mentions [text]
   (clojure.string/replace text #"@\S*" ""))
 
@@ -88,25 +91,34 @@
    (map tweet-text)
    (map redact-mentions)
    (map redact-links)
+   (map fix-ampersands)
    (map kill-multiple-spaces)
    ))
 
+
+(def initial-words
+  (->>
+   original-tweets-corpus
+   (map #(clojure.string/split % #"\s"))
+   (map (fn [tweets]
+          (filter #(not (= "" %)) tweets)))
+   (map #(take ngram-size %))
+   ))
 
 (def branching-prefixes
   "All potential starting points for the generator"
   (keys (filter (fn [[prefix suffixes]]
                   (and (not (empty? suffixes))
-                       (re-find #"^[A-Za-z]+[^\.,!\(\)]$" (first prefix)))
+                       (some #{prefix} initial-words))
                        ) ; words not ending a sentence
                 (vector->word-chain original-tweets-corpus))))
-
 
 (defn finalize-phrase [phrase]
   (-> phrase
       (clojure.string/replace #"[.,][^\.,]*$" ".")))
 
 (defn valid? [phrase]
-  (> (count phrase) 20))
+  (> (count phrase) 25))
 
 (defn gen-random []
   "Generate a random phrase that looks like @p9k coulda twote it"
